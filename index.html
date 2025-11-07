@@ -97,6 +97,7 @@
             height: 21px;
             cursor: pointer;
             z-index: 1001;
+            margin-right: 10px;
         }
         
         .menu-toggle span {
@@ -650,6 +651,7 @@
             
             .menu-toggle {
                 display: flex;
+                margin-right: -80px;
             }
             
             nav ul {
@@ -834,7 +836,7 @@
         <div class="qris-content">
             <h3>Pembayaran QRIS</h3>
             <div class="qris-image">
-                <img src="https://i.supaimg.com/fa34d5ff-1a14-4b82-acda-c2051d0152cc.jpg" alt="Image" />
+                <img src="https://i.supaimg.com/fa34d5ff-1a14-4b82-acda-c2051d0152cc.jpg" alt="QR Code Warkop Iyah" />
             </div>
             <p>Scan QR Code di atas untuk melakukan pembayaran</p>
             <div class="qris-actions">
@@ -878,7 +880,7 @@
             { id: 1, name: "Mie Nyemek Biasa", category: "makanan", price: 10000, description: "Mie nyemek dengan bumbu spesial", icon: "fa-utensils", hasSpiceLevel: true },
             { id: 2, name: "Mie Nyemek Special", category: "makanan", price: 14000, description: "Mie nyemek dengan tambahan topping", icon: "fa-utensils", hasSpiceLevel: true },
             { id: 3, name: "Mie Tek-Tek Special", category: "makanan", price: 14000, description: "Mie tek-tek dengan bumbu khas", icon: "fa-utensils", hasSpiceLevel: true },
-            { id: 4, name: "Mie Goreng", category: "makanan", price: 14000, description: "Mie goreng dengan bumbu istimewa", icon: "fa-utensils", hasSpiceLevel: true },
+            { id: 4, name: "Mie Goreng", category: "makanan", price: 10000, description: "Mie goreng dengan bumbu istimewa", icon: "fa-utensils", hasSpiceLevel: true },
             { id: 5, name: "Bihun Goreng", category: "makanan", price: 12000, description: "Bihun goreng dengan sayuran segar", icon: "fa-utensils", hasSpiceLevel: true },
             { id: 6, name: "Nasi Goreng", category: "makanan", price: 14000, description: "Nasi goreng dengan bumbu spesial", icon: "fa-utensils", hasSpiceLevel: true },
             { id: 7, name: "Indomie Bakso", category: "makanan", price: 13000, description: "Indomie dengan bakso sapi pilihan", icon: "fa-utensils", hasSpiceLevel: true },
@@ -970,15 +972,14 @@
                         optionsHTML += `
                             <div class="option-group">
                                 <label class="option-label">${item.customLabel}:</label>
-                                <input type="text" class="option-input custom-option" data-id="${item.id}" placeholder="Masukkan ${item.customLabel.toLowerCase()}">
+                                <input type="text" class="option-input" placeholder="Masukkan ${item.customLabel.toLowerCase()}">
                             </div>
                         `;
                     } else if (item.customType === 'select') {
                         optionsHTML += `
                             <div class="option-group">
                                 <label class="option-label">${item.customLabel}:</label>
-                                <select class="option-select custom-option" data-id="${item.id}">
-                                    <option value="">Pilih ${item.customLabel.toLowerCase()}</option>
+                                <select class="option-select">
                                     ${item.customOptions.map(option => `<option value="${option}">${option}</option>`).join('')}
                                 </select>
                             </div>
@@ -997,9 +998,9 @@
                         <div class="menu-price">
                             <span class="price">${formatCurrency(item.price)}</span>
                             <div class="quantity-controls">
-                                <button class="qty-btn" data-action="decrease" data-id="${item.id}">-</button>
-                                <input type="number" class="qty-input" data-id="${item.id}" value="1" min="1">
-                                <button class="qty-btn" data-action="increase" data-id="${item.id}">+</button>
+                                <button class="qty-btn minus">-</button>
+                                <input type="number" class="qty-input" value="1" min="1">
+                                <button class="qty-btn plus">+</button>
                             </div>
                         </div>
                         <button class="btn add-to-cart" data-id="${item.id}">Tambah ke Pesanan</button>
@@ -1013,36 +1014,71 @@
         }
 
         function attachEventListeners() {
-            document.querySelectorAll('.add-to-cart').forEach(btn => {
-                btn.addEventListener('click', function() {
+            document.querySelectorAll('.add-to-cart').forEach(button => {
+                button.addEventListener('click', function() {
                     const itemId = parseInt(this.dataset.id);
-                    addToCart(itemId);
+                    const menuCard = this.closest('.menu-card');
+                    const qtyInput = menuCard.querySelector('.qty-input');
+                    const quantity = parseInt(qtyInput.value);
+                    
+                    const item = menuItems.find(item => item.id === itemId);
+                    
+                    let options = {};
+                    
+                    if (item.hasSpiceLevel) {
+                        const spiceLevelsContainer = menuCard.querySelector('.spice-levels-container');
+                        const spiceLevelItems = spiceLevelsContainer.querySelectorAll('.spice-level-item');
+                        
+                        options.spiceLevels = [];
+                        
+                        spiceLevelItems.forEach(spiceItem => {
+                            const level = spiceItem.querySelector('.spice-level-select').value;
+                            const qty = parseInt(spiceItem.querySelector('.spice-level-qty').value);
+                            
+                            if (qty > 0) {
+                                options.spiceLevels.push({ level, qty });
+                            }
+                        });
+                    }
+                    
+                    if (item.hasCustomOption) {
+                        if (item.customType === 'text') {
+                            const customInput = menuCard.querySelector('.option-input[type="text"]');
+                            options.customText = customInput.value;
+                        } else if (item.customType === 'select') {
+                            const customSelect = menuCard.querySelector('.option-select');
+                            options.customSelect = customSelect.value;
+                        }
+                    }
+                    
+                    addToCart(itemId, quantity, options);
                 });
             });
             
-            document.querySelectorAll('.qty-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const action = this.dataset.action;
-                    const itemId = parseInt(this.dataset.id);
-                    const qtyInput = document.querySelector(`.qty-input[data-id="${itemId}"]`);
-                    let qty = parseInt(qtyInput.value);
-                    
-                    if (action === 'increase') {
-                        qtyInput.value = qty + 1;
-                    } else if (action === 'decrease' && qty > 1) {
-                        qtyInput.value = qty - 1;
+            document.querySelectorAll('.qty-btn.plus').forEach(button => {
+                button.addEventListener('click', function() {
+                    const qtyInput = this.parentElement.querySelector('.qty-input');
+                    qtyInput.value = parseInt(qtyInput.value) + 1;
+                });
+            });
+            
+            document.querySelectorAll('.qty-btn.minus').forEach(button => {
+                button.addEventListener('click', function() {
+                    const qtyInput = this.parentElement.querySelector('.qty-input');
+                    if (parseInt(qtyInput.value) > 1) {
+                        qtyInput.value = parseInt(qtyInput.value) - 1;
                     }
                 });
             });
             
-            document.querySelectorAll('.add-spice-level').forEach(btn => {
-                btn.addEventListener('click', function() {
+            document.querySelectorAll('.add-spice-level').forEach(button => {
+                button.addEventListener('click', function() {
                     const itemId = this.dataset.id;
-                    const container = document.querySelector(`.spice-levels-container[data-id="${itemId}"]`);
+                    const spiceLevelsContainer = document.querySelector(`.spice-levels-container[data-id="${itemId}"]`);
                     
-                    const newSpiceLevel = document.createElement('div');
-                    newSpiceLevel.className = 'spice-level-item';
-                    newSpiceLevel.innerHTML = `
+                    const spiceLevelItem = document.createElement('div');
+                    spiceLevelItem.className = 'spice-level-item';
+                    spiceLevelItem.innerHTML = `
                         <select class="option-select spice-level-select">
                             ${spiceLevels.map(level => `<option value="${level}">${level}</option>`).join('')}
                         </select>
@@ -1050,70 +1086,31 @@
                         <button class="remove-spice-level">×</button>
                     `;
                     
-                    container.appendChild(newSpiceLevel);
+                    spiceLevelsContainer.appendChild(spiceLevelItem);
                     
-                    newSpiceLevel.querySelector('.remove-spice-level').addEventListener('click', function() {
-                        container.removeChild(newSpiceLevel);
-                        if (container.children.length === 1) {
-                            container.querySelector('.remove-spice-level').style.display = 'none';
-                        }
+                    spiceLevelItem.querySelector('.remove-spice-level').addEventListener('click', function() {
+                        spiceLevelItem.remove();
                     });
                     
-                    container.querySelectorAll('.remove-spice-level').forEach(removeBtn => {
-                        removeBtn.style.display = 'inline-flex';
-                    });
-                });
-            });
-            
-            document.querySelectorAll('.remove-spice-level').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const container = this.closest('.spice-levels-container');
-                    if (container.children.length > 1) {
-                        this.parentElement.remove();
-                        if (container.children.length === 1) {
-                            container.querySelector('.remove-spice-level').style.display = 'none';
-                        }
+                    if (spiceLevelsContainer.querySelectorAll('.spice-level-item').length > 1) {
+                        spiceLevelsContainer.querySelectorAll('.remove-spice-level').forEach(btn => {
+                            btn.style.display = 'block';
+                        });
                     }
                 });
             });
         }
 
-        function addToCart(itemId) {
-            const item = menuItems.find(i => i.id === itemId);
-            if (!item) return;
-            
-            const qtyInput = document.querySelector(`.qty-input[data-id="${itemId}"]`);
-            const quantity = parseInt(qtyInput.value);
-            
-            let options = {};
-            
-            if (item.hasSpiceLevel) {
-                const spiceContainer = document.querySelector(`.spice-levels-container[data-id="${itemId}"]`);
-                const spiceItems = spiceContainer.querySelectorAll('.spice-level-item');
-                
-                options.spiceLevels = [];
-                spiceItems.forEach(spiceItem => {
-                    const level = spiceItem.querySelector('.spice-level-select').value;
-                    const qty = parseInt(spiceItem.querySelector('.spice-level-qty').value);
-                    options.spiceLevels.push({ level, qty });
-                });
-            }
-            
-            if (item.hasCustomOption) {
-                const customOption = document.querySelector(`.custom-option[data-id="${itemId}"]`);
-                if (customOption) {
-                    options.custom = customOption.value;
-                }
-            }
-            
-            const existingItemIndex = cart.findIndex(cartItem => 
-                cartItem.id === itemId && 
-                JSON.stringify(cartItem.options) === JSON.stringify(options)
+        function addToCart(itemId, quantity, options) {
+            const existingItemIndex = cart.findIndex(item => 
+                item.id === itemId && 
+                JSON.stringify(item.options) === JSON.stringify(options)
             );
             
             if (existingItemIndex !== -1) {
                 cart[existingItemIndex].quantity += quantity;
             } else {
+                const item = menuItems.find(item => item.id === itemId);
                 cart.push({
                     id: item.id,
                     name: item.name,
@@ -1123,18 +1120,19 @@
                 });
             }
             
-            updateCart();
+            updateOrderSummary();
             
             Swal.fire({
                 title: 'Berhasil!',
-                text: `${item.name} telah ditambahkan ke pesanan`,
+                text: 'Item telah ditambahkan ke pesanan',
                 icon: 'success',
-                confirmButtonText: 'OK',
-                timer: 2000
+                confirmButtonColor: '#8B4513',
+                timer: 1500,
+                showConfirmButton: 'OK'
             });
         }
 
-        function updateCart() {
+        function updateOrderSummary() {
             orderItems.innerHTML = '';
             
             if (cart.length === 0) {
@@ -1143,25 +1141,31 @@
                 return;
             }
             
-            let total = 0;
+            let totalPrice = 0;
             
             cart.forEach((item, index) => {
                 const itemTotal = item.price * item.quantity;
-                total += itemTotal;
+                totalPrice += itemTotal;
                 
                 const orderItem = document.createElement('div');
                 orderItem.className = 'order-item';
                 
                 let optionsText = '';
+                
                 if (item.options.spiceLevels) {
-                    optionsText = item.options.spiceLevels.map(spice => 
+                    optionsText += item.options.spiceLevels.map(spice => 
                         `${spice.level} (${spice.qty})`
                     ).join(', ');
                 }
                 
-                if (item.options.custom) {
-                    if (optionsText) optionsText += ', ';
-                    optionsText += item.options.custom;
+                if (item.options.customText) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customText;
+                }
+                
+                if (item.options.customSelect) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customSelect;
                 }
                 
                 orderItem.innerHTML = `
@@ -1176,12 +1180,21 @@
                 orderItems.appendChild(orderItem);
             });
             
-            totalPriceElement.textContent = formatCurrency(total);
+            totalPriceElement.textContent = formatCurrency(totalPrice);
         }
 
         function clearCart() {
             cart = [];
-            updateCart();
+            updateOrderSummary();
+            
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'Pesanan telah dihapus',
+                icon: 'success',
+                confirmButtonColor: '#8B4513',
+                timer: 1500,
+                showConfirmButton: 'OK'
+            });
         }
 
         function placeOrder() {
@@ -1190,98 +1203,158 @@
                     title: 'Pesanan Kosong',
                     text: 'Silakan tambahkan item ke pesanan terlebih dahulu',
                     icon: 'warning',
-                    confirmButtonText: 'OK'
+                    confirmButtonColor: '#8B4513'
                 });
                 return;
             }
             
-            qrisModal.classList.add('active');
-        }
-
-        function continueAfterQR() {
-            qrisModal.classList.remove('active');
-            
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            // Format pesan WhatsApp
-            let message = "Halo Warkop Iyah, saya ingin memesan:\n\n";
-            
-            cart.forEach(item => {
-                message += `• ${item.name} (${item.quantity}x) - ${formatCurrency(item.price * item.quantity)}\n`;
+            const orderDetails = cart.map(item => {
+                let optionsText = '';
                 
                 if (item.options.spiceLevels) {
-                    item.options.spiceLevels.forEach(spice => {
-                        message += `  - Level: ${spice.level} (${spice.qty})\n`;
-                    });
+                    optionsText += item.options.spiceLevels.map(spice => 
+                        `${spice.level} (${spice.qty})`
+                    ).join(', ');
                 }
                 
-                if (item.options.custom) {
-                    message += `  - Catatan: ${item.options.custom}\n`;
+                if (item.options.customText) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customText;
                 }
                 
-                message += "\n";
-            });
+                if (item.options.customSelect) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customSelect;
+                }
+                
+                return `${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x`;
+            }).join('\n');
             
-            message += `Total: ${formatCurrency(total)}\n\n`;
-            message += "Terima kasih!";
+            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
             
-            // Encode pesan untuk URL WhatsApp
-            const encodedMessage = encodeURIComponent(message);
-            const phoneNumber = "6281370504313";
-            const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-            
-            // Tampilkan notifikasi dan buka WhatsApp
             Swal.fire({
-                title: 'Pembayaran Berhasil!',
-                text: 'Pesanan Anda sedang diproses. Akan dialihkan ke WhatsApp untuk konfirmasi.',
-                icon: 'success',
-                confirmButtonText: 'Buka WhatsApp',
+                title: 'Konfirmasi Pesanan',
+                html: `Apakah Anda yakin ingin membeli:<br><br>${orderDetails.replace(/\n/g, '<br>')}<br><br><strong>Total: ${formatCurrency(totalPrice)}</strong>`,
+                icon: 'question',
                 showCancelButton: true,
-                cancelButtonText: 'Tutup'
+                confirmButtonColor: '#8B4513',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Lanjutkan Pembayaran',
+                cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.open(whatsappURL, '_blank');
+                    qrisModal.classList.add('active');
                 }
-                clearCart();
             });
+        }
+
+        function closeQrisModal() {
+            qrisModal.classList.remove('active');
         }
 
         function downloadQR() {
-            const link = document.createElement('a');
-            link.href = 'https://i.supaimg.com/fa34d5ff-1a14-4b82-acda-c2051d0152cc.jpg';
-            link.download = 'qris-warkop-iyah.jpg';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const qrImage = document.querySelector('.qris-image img');
+            const imageUrl = qrImage.src;
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = imageUrl;
+            downloadLink.download = 'QRIS_Warkop_Iyah.jpg'; 
+            
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            Swal.fire({
+                title: 'Download Berhasil',
+                text: 'QR Code telah berhasil didownload',
+                icon: 'success',
+                confirmButtonColor: '#8B4513',
+                timer: 1500,
+                showConfirmButton: 'OK'
+            });
         }
 
-        function init() {
-            renderMenuItems();
+        function sendWhatsAppOrder() {
+            const phoneNumber = "6281370504313";
             
+            let message = "*HALO WARKOP IYAH, SAYA INGIN MEMESAN:*\n\n";
+            
+            cart.forEach((item, index) => {
+                let optionsText = '';
+                
+                if (item.options.spiceLevels) {
+                    optionsText += item.options.spiceLevels.map(spice => 
+                        `${spice.level} (${spice.qty})`
+                    ).join(', ');
+                }
+                
+                if (item.options.customText) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customText;
+                }
+                
+                if (item.options.customSelect) {
+                    optionsText += optionsText ? ', ' : '';
+                    optionsText += item.options.customSelect;
+                }
+                
+                message += `${index + 1}. ${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x\n`;
+            });
+            
+            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            message += `\nTotal: ${formatCurrency(totalPrice)}\n\n`;
+            message += "Saya sudah melakukan pembayaran via QRIS. Terima kasih!";
+        
+            const encodedMessage = encodeURIComponent(message);
+            
+            window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+        }
+
+        function continueAfterPayment() {
+            closeQrisModal();
+            
+            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            
+            Swal.fire({
+                title: 'Pembayaran Berhasil!',
+                html: `Terima kasih atas pesanan Anda.<br>Total: <strong>${formatCurrency(totalPrice)}</strong><br><br>Pesanan Anda akan segera diproses.`,
+                icon: 'success',
+                confirmButtonColor: '#8B4513'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sendWhatsAppOrder();
+                }
+            });
+            
+            cart = [];
+            updateOrderSummary();
+        }
+
+        function filterMenu() {
             categoryBtns.forEach(btn => {
                 btn.addEventListener('click', function() {
                     categoryBtns.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
+                    
                     const category = this.dataset.category;
                     renderMenuItems(category);
                 });
             });
-            
-            clearOrderBtn.addEventListener('click', clearCart);
-            placeOrderBtn.addEventListener('click', placeOrder);
-            downloadQrBtn.addEventListener('click', downloadQR);
-            continueQrisBtn.addEventListener('click', continueAfterQR);
-            
+        }
+
+        function toggleMobileMenu() {
             menuToggle.addEventListener('click', function() {
                 this.classList.toggle('active');
                 navList.classList.toggle('active');
                 overlay.classList.toggle('active');
+                document.body.style.overflow = navList.classList.contains('active') ? 'hidden' : '';
             });
             
             overlay.addEventListener('click', function() {
                 menuToggle.classList.remove('active');
                 navList.classList.remove('active');
                 this.classList.remove('active');
+                document.body.style.overflow = '';
             });
             
             document.querySelectorAll('nav a').forEach(link => {
@@ -1289,7 +1362,25 @@
                     menuToggle.classList.remove('active');
                     navList.classList.remove('active');
                     overlay.classList.remove('active');
+                    document.body.style.overflow = '';
                 });
+            });
+        }
+
+        function init() {
+            renderMenuItems();
+            filterMenu();
+            toggleMobileMenu();
+            
+            clearOrderBtn.addEventListener('click', clearCart);
+            placeOrderBtn.addEventListener('click', placeOrder);
+            downloadQrBtn.addEventListener('click', downloadQR);
+            continueQrisBtn.addEventListener('click', continueAfterPayment);
+            
+            document.addEventListener('click', function(e) {
+                if (e.target === qrisModal) {
+                    closeQrisModal();
+                }
             });
         }
 
