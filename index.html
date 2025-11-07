@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WARUNG IYAH - WARKOP IYAH</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="png" href="https://i.supaimg.com/6d4de194-82c8-4814-bbb5-817bc7df471c.png">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
@@ -900,7 +901,7 @@
             { id: 20, name: "Nutrisari", category: "minuman", price: 4000, description: "Minuman sari buah segar", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "text", customLabel: "Rasa (contoh: Jeruk, Leci, Mangga)" },
             { id: 21, name: "Josu", category: "minuman", price: 7000, description: "Minuman energi Josu", icon: "fa-glass-whiskey", hasCustomOption: false },
             { id: 22, name: "Coffee Panas", category: "minuman", price: 5000, description: "Kopi panas nikmat", icon: "fa-mug-hot", hasCustomOption: true, customType: "text", customLabel: "Catatan (contoh: Sedikit gula, Extra krim)" },
-            { id: 23, name: "Aneka Drink", category: "minuman", price: 6000, description: "Minuman aneka rasa", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "select", customLabel: "Pilih Rasa", customOptions: ["Coklat", "Strawberry", "Vanilla", "Taro", "Green Tea"] },
+            { id: 23, name: "Aneka Drink", category: "minuman", price: 6000, description: "Minuman aneka rasa", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "text", customLabel: "Rasa (contoh: Coklat, Strawberry, Vanilla, Taro, Green Tea)" },
             { id: 24, name: "Es Coffee Malaka", category: "minuman", price: 7000, description: "Es kopi Malaka spesial", icon: "fa-mug-hot", hasCustomOption: false },
             { id: 25, name: "Es Coffee Iyah Special", category: "minuman", price: 15000, description: "Es kopi spesial khas Warkop Iyah", icon: "fa-mug-hot", hasCustomOption: false },
             { id: 26, name: "Soda Susu", category: "minuman", price: 10000, description: "Soda dengan campuran susu", icon: "fa-glass-whiskey", hasCustomOption: false },
@@ -975,15 +976,6 @@
                                 <input type="text" class="option-input" placeholder="Masukkan ${item.customLabel.toLowerCase()}">
                             </div>
                         `;
-                    } else if (item.customType === 'select') {
-                        optionsHTML += `
-                            <div class="option-group">
-                                <label class="option-label">${item.customLabel}:</label>
-                                <select class="option-select">
-                                    ${item.customOptions.map(option => `<option value="${option}">${option}</option>`).join('')}
-                                </select>
-                            </div>
-                        `;
                     }
                 }
                 
@@ -1045,9 +1037,6 @@
                         if (item.customType === 'text') {
                             const customInput = menuCard.querySelector('.option-input[type="text"]');
                             options.customText = customInput.value;
-                        } else if (item.customType === 'select') {
-                            const customSelect = menuCard.querySelector('.option-select');
-                            options.customSelect = customSelect.value;
                         }
                     }
                     
@@ -1163,11 +1152,6 @@
                     optionsText += item.options.customText;
                 }
                 
-                if (item.options.customSelect) {
-                    optionsText += optionsText ? ', ' : '';
-                    optionsText += item.options.customSelect;
-                }
-                
                 orderItem.innerHTML = `
                     <div class="item-name">
                         ${item.name}
@@ -1222,11 +1206,6 @@
                     optionsText += item.options.customText;
                 }
                 
-                if (item.options.customSelect) {
-                    optionsText += optionsText ? ', ' : '';
-                    optionsText += item.options.customSelect;
-                }
-                
                 return `${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x`;
             }).join('\n');
             
@@ -1270,7 +1249,7 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 1500,
-                showConfirmButton: 'OK'
+                showConfirmButton: false
             });
         }
 
@@ -1293,17 +1272,12 @@
                     optionsText += item.options.customText;
                 }
                 
-                if (item.options.customSelect) {
-                    optionsText += optionsText ? ', ' : '';
-                    optionsText += item.options.customSelect;
-                }
-                
                 message += `${index + 1}. ${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x\n`;
             });
             
             const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            message += `\nTotal: ${formatCurrency(totalPrice)}\n\n`;
-            message += "Saya sudah melakukan pembayaran via QRIS. Terima kasih!";
+            message += `\n*Total: ${formatCurrency(totalPrice)}*\n\n`;
+            message += "Mohon Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
         
             const encodedMessage = encodeURIComponent(message);
             
