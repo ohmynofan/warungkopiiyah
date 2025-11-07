@@ -1117,7 +1117,7 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 1500,
-                showConfirmButton: 'OK'
+                showConfirmButton: false
             });
         }
 
@@ -1141,13 +1141,13 @@
                 
                 let optionsText = '';
                 
-                if (item.options.spiceLevels) {
+                if (item.options && item.options.spiceLevels) {
                     optionsText += item.options.spiceLevels.map(spice => 
                         `${spice.level} (${spice.qty})`
                     ).join(', ');
                 }
                 
-                if (item.options.customText) {
+                if (item.options && item.options.customText) {
                     optionsText += optionsText ? ', ' : '';
                     optionsText += item.options.customText;
                 }
@@ -1177,7 +1177,7 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 1500,
-                showConfirmButton: 'OK'
+                showConfirmButton: false
             });
         }
 
@@ -1195,13 +1195,13 @@
             const orderDetails = cart.map(item => {
                 let optionsText = '';
                 
-                if (item.options.spiceLevels) {
+                if (item.options && item.options.spiceLevels) {
                     optionsText += item.options.spiceLevels.map(spice => 
                         `${spice.level} (${spice.qty})`
                     ).join(', ');
                 }
                 
-                if (item.options.customText) {
+                if (item.options && item.options.customText) {
                     optionsText += optionsText ? ', ' : '';
                     optionsText += item.options.customText;
                 }
@@ -1261,13 +1261,13 @@
             cart.forEach((item, index) => {
                 let optionsText = '';
                 
-                if (item.options.spiceLevels) {
+                if (item.options && item.options.spiceLevels) {
                     optionsText += item.options.spiceLevels.map(spice => 
                         `${spice.level} (${spice.qty})`
                     ).join(', ');
                 }
                 
-                if (item.options.customText) {
+                if (item.options && item.options.customText) {
                     optionsText += optionsText ? ', ' : '';
                     optionsText += item.options.customText;
                 }
@@ -1278,7 +1278,7 @@
             const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
             message += `\n*Total: ${formatCurrency(totalPrice)}*\n\n`;
             message += "Mohon Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
-        
+
             const encodedMessage = encodeURIComponent(message);
             
             window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
@@ -1289,19 +1289,24 @@
             
             const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
             
+            // PERBAIKAN: Pindahkan pemanggilan sendWhatsAppOrder ke sini
+            // dan hapus cart setelah pesan WhatsApp terbuka
+            sendWhatsAppOrder();
+            
             Swal.fire({
                 title: 'Pembayaran Berhasil!',
                 html: `Terima kasih atas pesanan Anda.<br>Total: <strong>${formatCurrency(totalPrice)}</strong><br><br>Pesanan Anda akan segera diproses.`,
                 icon: 'success',
-                confirmButtonColor: '#8B4513'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    sendWhatsAppOrder();
-                }
+                confirmButtonColor: '#8B4513',
+                timer: 3000,
+                showConfirmButton: false
             });
             
-            cart = [];
-            updateOrderSummary();
+            // Kosongkan cart setelah pesan WhatsApp terbuka
+            setTimeout(() => {
+                cart = [];
+                updateOrderSummary();
+            }, 1000);
         }
 
         function filterMenu() {
