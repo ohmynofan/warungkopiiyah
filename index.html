@@ -901,7 +901,7 @@
             { id: 20, name: "Nutrisari", category: "minuman", price: 4000, description: "Minuman sari buah segar", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "text", customLabel: "Rasa (contoh: Jeruk, Leci, Mangga)" },
             { id: 21, name: "Josu", category: "minuman", price: 7000, description: "Minuman energi Josu", icon: "fa-glass-whiskey", hasCustomOption: false },
             { id: 22, name: "Coffee Panas", category: "minuman", price: 5000, description: "Kopi panas nikmat", icon: "fa-mug-hot", hasCustomOption: true, customType: "text", customLabel: "Catatan (contoh: Sedikit gula, Extra krim)" },
-            { id: 23, name: "Aneka Drink", category: "minuman", price: 6000, description: "Minuman aneka rasa", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "text", customLabel: "Rasa (contoh: Coklat, Strawberry, Vanilla, Taro, Green Tea)" },
+            { id: 23, name: "Aneka Drink", category: "minuman", price: 6000, description: "Minuman aneka rasa", icon: "fa-glass-whiskey", hasCustomOption: true, customType: "text", customLabel: "(Matcha, Es Teh Tarik, Drink Beng-Beng, dll)" },
             { id: 24, name: "Es Coffee Malaka", category: "minuman", price: 7000, description: "Es kopi Malaka spesial", icon: "fa-mug-hot", hasCustomOption: false },
             { id: 25, name: "Es Coffee Iyah Special", category: "minuman", price: 15000, description: "Es kopi spesial khas Warkop Iyah", icon: "fa-mug-hot", hasCustomOption: false },
             { id: 26, name: "Soda Susu", category: "minuman", price: 10000, description: "Soda dengan campuran susu", icon: "fa-glass-whiskey", hasCustomOption: false },
@@ -1117,7 +1117,7 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 1500,
-                showConfirmButton: false
+                showConfirmButton: 'OK'
             });
         }
 
@@ -1177,7 +1177,7 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 1500,
-                showConfirmButton: false
+                showConfirmButton: 'OK'
             });
         }
 
@@ -1254,34 +1254,36 @@
         }
 
         function sendWhatsAppOrder() {
-            const phoneNumber = "6281370504313";
+          const phoneNumber = "6281370504313";
+          
+          let message = "*HALO WARKOP IYAH, SAYA INGIN MEMESAN:*\n\n";
+          
+          cart.forEach((item, index) => {
+            let optionsText = '';
             
-            let message = "*HALO WARKOP IYAH, SAYA INGIN MEMESAN:*\n\n";
+            if (item.options && item.options.spiceLevels) {
+              optionsText += item.options.spiceLevels.map(spice => 
+                `${spice.level} (${spice.qty})`
+                ).join(', ');
+            }
             
-            cart.forEach((item, index) => {
-                let optionsText = '';
-                
-                if (item.options && item.options.spiceLevels) {
-                    optionsText += item.options.spiceLevels.map(spice => 
-                        `${spice.level} (${spice.qty})`
-                    ).join(', ');
-                }
-                
-                if (item.options && item.options.customText) {
-                    optionsText += optionsText ? ', ' : '';
-                    optionsText += item.options.customText;
-                }
-                
-                message += `${index + 1}. ${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x\n`;
-            });
+            if (item.options && item.options.customText) {
+              optionsText += optionsText ? ', ' : '';
+              optionsText += item.options.customText;
+            }
             
-            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            message += `\n*Total: ${formatCurrency(totalPrice)}*\n\n`;
-            message += "Mohon Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
-
-            const encodedMessage = encodeURIComponent(message);
+            const itemTotal = item.price * item.quantity;
             
-            window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+            message += `${index + 1}. ${item.name} ${optionsText ? `(${optionsText})` : ''} - ${item.quantity}x = ${formatCurrency(itemTotal)}\n`;
+          });
+          
+          const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+          message += `\n*TOTAL: ${formatCurrency(totalPrice)}*\n\n`;
+          message += "Mohon Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
+          
+          const encodedMessage = encodeURIComponent(message);
+          
+          window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
         }
 
         function continueAfterPayment() {
@@ -1289,8 +1291,6 @@
             
             const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
             
-            // PERBAIKAN: Pindahkan pemanggilan sendWhatsAppOrder ke sini
-            // dan hapus cart setelah pesan WhatsApp terbuka
             sendWhatsAppOrder();
             
             Swal.fire({
@@ -1299,10 +1299,9 @@
                 icon: 'success',
                 confirmButtonColor: '#8B4513',
                 timer: 3000,
-                showConfirmButton: false
+                showConfirmButton: 'OK'
             });
             
-            // Kosongkan cart setelah pesan WhatsApp terbuka
             setTimeout(() => {
                 cart = [];
                 updateOrderSummary();
