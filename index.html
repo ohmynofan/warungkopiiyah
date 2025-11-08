@@ -99,6 +99,7 @@
             cursor: pointer;
             z-index: 1001;
             margin-right: 10px;
+            transition: all 0.3s ease;
         }
         
         .menu-toggle span {
@@ -202,6 +203,113 @@
             color: #666;
             max-width: 600px;
             margin: 0 auto;
+        }
+        
+        .menu-search {
+            max-width: 500px;
+            margin: 0 auto 30px;
+            position: relative;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid var(--accent);
+            border-radius: 30px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
+        }
+        
+        .search-container {
+          position: relative;
+          width: 100%;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        
+        .search-input {
+          width: 100%;
+          padding: 12px 45px 12px 20px;
+          border: 2px solid var(--accent);
+          border-radius: 30px;
+          font-size: 1rem;
+          outline: none;
+          transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
+        }
+        
+        .search-icon {
+          position: absolute;
+          right: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--primary);
+          font-size: 1.2rem;
+          cursor: pointer;
+          transition: color 0.3s ease;
+        }
+        
+        .search-icon:hover {
+          color: var(--secondary);
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .search-results.active {
+            display: block;
+        }
+        
+        .search-result-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .search-result-item:hover {
+            background-color: var(--light);
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .search-result-category {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 3px;
         }
         
         .menu-categories {
@@ -652,8 +760,32 @@
             
             .menu-toggle {
                 display: flex;
-                margin-right: -80px;
+                margin-right: -50px;
             }
+            
+            .menu-search {
+              max-width: 316px;
+              margin: 0 auto 25px;
+            }
+            
+            .search-container {
+              gap: 8px;
+            }
+            
+            .search-input {
+              padding: 10px 16px;
+              font-size: 0.9rem;
+            }
+            
+            .search-btn {
+              padding: 0 16px;
+              min-width: 45px;
+            }
+            
+            .search-btn i {
+              font-size: 0.9rem;
+            }
+        }
             
             nav ul {
                 position: fixed;
@@ -754,6 +886,15 @@
                 padding: 8px 15px;
                 font-size: 0.9rem;
             }
+            
+            .search-container {
+                flex-direction: gap;
+                gap: 8px;
+            }
+            
+            .search-btn {
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -805,6 +946,14 @@
             <div class="section-title">
                 <h2>Menu Kami</h2>
                 <p>Pilih dari berbagai pilihan minuman dan makanan lezat kami. Klik tombol kategori untuk menyaring menu.</p>
+            </div>
+
+            <div class="menu-search">
+              <div class="search-container">
+                <input type="text" class="search-input" id="search-input" placeholder="Cari menu...">
+                <i class="fas fa-search search-icon" id="search-btn"></i>
+                </div>
+                <div class="search-results" id="search-results"></div>
             </div>
 
             <div class="menu-categories">
@@ -913,6 +1062,8 @@
 
         let cart = [];
         let customerName = "";
+        let currentCategory = 'all';
+        let currentSearchTerm = '';
 
         const menuContainer = document.getElementById('menu-container');
         const orderItems = document.getElementById('order-items');
@@ -926,6 +1077,9 @@
         const qrisModal = document.getElementById('qris-modal');
         const downloadQrBtn = document.getElementById('download-qr');
         const continueQrisBtn = document.getElementById('continue-qris');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const searchResults = document.getElementById('search-results');
 
         const spiceLevels = ["Original", "Sedang", "Pedas", "Extra Pedas", "Sedang Manis", "Pedas Manis"];
 
@@ -937,12 +1091,32 @@
             }).format(amount);
         }
 
-        function renderMenuItems(category = 'all') {
+        function filterMenuItems(category = 'all', searchTerm = '') {
+            return menuItems.filter(item => {
+                const categoryMatch = category === 'all' || item.category === category;
+                const searchMatch = !searchTerm || 
+                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.description.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                return categoryMatch && searchMatch;
+            });
+        }
+
+        function renderMenuItems(category = 'all', searchTerm = '') {
             menuContainer.innerHTML = '';
             
-            const filteredItems = category === 'all' 
-                ? menuItems 
-                : menuItems.filter(item => item.category === category);
+            const filteredItems = filterMenuItems(category, searchTerm);
+            
+            if (filteredItems.length === 0) {
+                menuContainer.innerHTML = `
+                    <div class="no-results" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                        <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
+                        <h3 style="color: #666; margin-bottom: 10px;">Tidak ada menu yang ditemukan</h3>
+                        <p style="color: #999;">Coba kata kunci lain atau lihat semua menu</p>
+                    </div>
+                `;
+                return;
+            }
             
             filteredItems.forEach(item => {
                 const menuCard = document.createElement('div');
@@ -1007,6 +1181,54 @@
             });
             
             attachEventListeners();
+        }
+
+        function searchMenu() {
+            const searchTerm = searchInput.value.trim();
+            currentSearchTerm = searchTerm;
+            
+            if (searchTerm) {
+                const results = filterMenuItems(currentCategory, searchTerm);
+                displaySearchResults(results);
+            } else {
+                hideSearchResults();
+                renderMenuItems(currentCategory);
+            }
+        }
+
+        function displaySearchResults(results) {
+            searchResults.innerHTML = '';
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="search-result-item">
+                        <div class="search-result-name">Tidak ada hasil ditemukan</div>
+                    </div>
+                `;
+            } else {
+                results.forEach(item => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'search-result-item';
+                    resultItem.innerHTML = `
+                        <div class="search-result-name">${item.name}</div>
+                        <div class="search-result-category">${item.category === 'makanan' ? 'Makanan' : 'Minuman'} - ${formatCurrency(item.price)}</div>
+                    `;
+                    
+                    resultItem.addEventListener('click', () => {
+                        searchInput.value = item.name;
+                        hideSearchResults();
+                        renderMenuItems(currentCategory, item.name);
+                    });
+                    
+                    searchResults.appendChild(resultItem);
+                });
+            }
+            
+            searchResults.classList.add('active');
+        }
+
+        function hideSearchResults() {
+            searchResults.classList.remove('active');
         }
 
         function attachEventListeners() {
@@ -1339,8 +1561,8 @@
                     categoryBtns.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     
-                    const category = this.dataset.category;
-                    renderMenuItems(category);
+                    currentCategory = this.dataset.category;
+                    renderMenuItems(currentCategory, currentSearchTerm);
                 });
             });
         }
@@ -1370,10 +1592,32 @@
             });
         }
 
+        function initSearch() {
+            searchBtn.addEventListener('click', searchMenu);
+            
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    searchMenu();
+                } else if (searchInput.value.trim()) {
+                    searchMenu();
+                } else {
+                    hideSearchResults();
+                    renderMenuItems(currentCategory);
+                }
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    hideSearchResults();
+                }
+            });
+        }
+
         function init() {
             renderMenuItems();
             filterMenu();
             toggleMobileMenu();
+            initSearch();
             
             clearOrderBtn.addEventListener('click', clearCart);
             placeOrderBtn.addEventListener('click', placeOrder);
