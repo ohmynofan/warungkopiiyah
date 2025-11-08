@@ -912,6 +912,7 @@
         ];
 
         let cart = [];
+        let customerName = "";
 
         const menuContainer = document.getElementById('menu-container');
         const orderItems = document.getElementById('order-items');
@@ -1256,10 +1257,34 @@
             });
         }
 
+        function askCustomerName() {
+            Swal.fire({
+                title: 'Masukkan Nama Anda',
+                input: 'text',
+                inputPlaceholder: 'Nama Lengkap',
+                showCancelButton: true,
+                confirmButtonColor: '#8B4513',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Lanjutkan',
+                cancelButtonText: 'Batal',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Nama lengkap harus diisi!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    customerName = result.value;
+                    sendWhatsAppOrder();
+                }
+            });
+        }
+
         function sendWhatsAppOrder() {
           const phoneNumber = "6281370504313";
           
-          let message = "*HALO WARKOP IYAH, SAYA INGIN MEMESAN:*\n\n";
+          let message = `*HALO WARKOP IYAH, SAYA INGIN MEMESAN:*\n\n`;
+          message += `*Nama Pemesan:* ${customerName}\n\n`;
           
           cart.forEach((item, index) => {
             let optionsText = '';
@@ -1282,33 +1307,30 @@
           
           const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
           message += `\n*TOTAL: ${formatCurrency(totalPrice)}*\n\n`;
-          message += "Mohon Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
+          message += "Harap Konfirmasi jika sudah melakukan pembayaran via QRIS. Terima kasih!";
           
           const encodedMessage = encodeURIComponent(message);
           
           window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+          
+          Swal.fire({
+            title: 'Pembayaran Berhasil!',
+            html: `Terima kasih <strong>${customerName}</strong> atas pesanan Anda.<br>Total: <strong>${formatCurrency(totalPrice)}</strong><br><br>Pesanan Anda akan segera diproses.`,
+            icon: 'success',
+            confirmButtonColor: '#8B4513',
+            timer: 3000,
+            showConfirmButton: 'OK'
+          });
+          
+          setTimeout(() => {
+            cart = [];
+            updateOrderSummary();
+          }, 1000);
         }
 
         function continueAfterPayment() {
             closeQrisModal();
-            
-            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            
-            sendWhatsAppOrder();
-            
-            Swal.fire({
-                title: 'Pembayaran Berhasil!',
-                html: `Terima kasih atas pesanan Anda.<br>Total: <strong>${formatCurrency(totalPrice)}</strong><br><br>Pesanan Anda akan segera diproses.`,
-                icon: 'success',
-                confirmButtonColor: '#8B4513',
-                timer: 3000,
-                showConfirmButton: 'OK'
-            });
-            
-            setTimeout(() => {
-                cart = [];
-                updateOrderSummary();
-            }, 1000);
+            askCustomerName();
         }
 
         function filterMenu() {
